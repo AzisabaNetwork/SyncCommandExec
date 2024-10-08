@@ -1,0 +1,5 @@
+main: com.github.aburaagetarou.SyncCommandExec
+name: SyncCommandExec
+version: "1.0.0"
+api: 1.16.5
+api-version: 1.16

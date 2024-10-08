@@ -1,0 +1,14 @@
+
+# 同期対象コマンド
+triggers:
+
+  # トリガーのコマンド
+  cspreload:
+    commands:
+      - "csp reload"
+    messages:
+      begin:
+        - "&c設定を再読込しています。"
+        - "&cラグが発生します。ご注意ください。"
+      end:
+        - "&aリロードが完了しました。"
