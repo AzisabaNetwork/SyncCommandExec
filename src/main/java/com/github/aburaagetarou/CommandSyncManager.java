@@ -105,11 +105,11 @@ public class CommandSyncManager {
          * タスク開始
          */
         @Override
-        public void run() {
+        public synchronized void run() {
             while (running) {
                 try {
-                    // 1秒ごとに監視
-                    Thread.sleep(1000L);
+                    // 10秒ごとに監視
+                    Thread.sleep(10000L);
 
                     // 連携用ファイルの保存ディレクトリにファイルが存在する場合
                     File file = new File(SyncCommandExecConfig.getSyncDataDir(), CHECK_FILENAME);
@@ -137,8 +137,8 @@ public class CommandSyncManager {
                                 if(count++ < CommandSyncManager.lineCount) continue;
                                 CommandSyncManager.lineCount++;
                                 Bukkit.getScheduler().runTask(SyncCommandExec.getInstance(), () -> {
-                                    if(SyncCommandTriggers.getTriggerCommands().keySet().contains("/" + cmd)) {
-                                        String key = SyncCommandTriggers.getTriggerCommands().get("/" + cmd);
+                                    if(SyncCommandTriggers.getTriggerCommands().keySet().contains(cmd)) {
+                                        String key = SyncCommandTriggers.getTriggerCommands().get(cmd);
                                         for(String msg : SyncCommandTriggers.getBeginExecMsgs(key)) {
                                             MessageUtils.broadcastColoredMessage(msg);
                                         }
