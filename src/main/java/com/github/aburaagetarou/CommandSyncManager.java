@@ -105,11 +105,11 @@ public class CommandSyncManager {
          * タスク開始
          */
         @Override
-        public synchronized void run() {
+        public void run() {
             while (running) {
                 try {
-                    // 10秒ごとに監視
-                    Thread.sleep(10000L);
+                    // 1秒ごとに監視
+                    Thread.sleep(1000L);
 
                     // 連携用ファイルの保存ディレクトリにファイルが存在する場合
                     File file = new File(SyncCommandExecConfig.getSyncDataDir(), CHECK_FILENAME);
