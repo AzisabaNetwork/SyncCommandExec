@@ -1,3 +1,4 @@
 /.vscode/
-multiserverreward/target/
-multiserverreward/lib/
+/target/
+/lib/
+
