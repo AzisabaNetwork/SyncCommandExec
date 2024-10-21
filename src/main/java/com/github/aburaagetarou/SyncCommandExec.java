@@ -3,6 +3,7 @@ package com.github.aburaagetarou;
 import java.util.HashSet;
 import java.util.Set;
 
+import com.github.aburaagetarou.command.BatchCommandExec;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import com.github.aburaagetarou.command.SyncCommandExecCommand;
@@ -51,6 +52,12 @@ public class SyncCommandExec extends JavaPlugin {
 
         // コマンド登録
         manager.registerCommand(new SyncCommandExecCommand().setExceptionHandler((command, registeredCommand, sender, args, t) -> {
+            sender.sendMessage(MessageType.ERROR, MessageKeys.ERROR_GENERIC_LOGGED);
+            return true;
+        }));
+
+        // コマンド登録
+        manager.registerCommand(new BatchCommandExec().setExceptionHandler((command, registeredCommand, sender, args, t) -> {
             sender.sendMessage(MessageType.ERROR, MessageKeys.ERROR_GENERIC_LOGGED);
             return true;
         }));

@@ -20,7 +20,11 @@ import co.aikar.commands.annotation.Flags;
 import co.aikar.commands.annotation.HelpCommand;
 import co.aikar.commands.annotation.Subcommand;
 
-@CommandAlias("syncomma")
+/**
+ * コマンド実行同期プラグイン 管理コマンド
+ * @auther AburaAgeTarou
+ */
+@CommandAlias("synccommandexec|syncomma")
 @Description("コマンド実行同期プラグイン 管理コマンド")
 public class SyncCommandExecCommand extends BaseCommand {
     

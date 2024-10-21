@@ -108,62 +108,68 @@ public class CommandSyncManager {
         public void run() {
             while (running) {
                 try {
-                    // 1秒ごとに監視
                     Thread.sleep(1000L);
-
-                    // 連携用ファイルの保存ディレクトリにファイルが存在する場合
-                    File file = new File(SyncCommandExecConfig.getSyncDataDir(), CHECK_FILENAME);
-                    if (file.exists()) {
-
-                        // 作成日時を取得
-                        BasicFileAttributes atr = Files.readAttributes(file.toPath(), BasicFileAttributes.class);
-                        long fileCreate = atr.creationTime().toMillis();
-
-                        // 作成日時が異なる場合、1行目から
-                        if(fileCreate != lastFileCreate) {
-                            CommandSyncManager.lineCount = 0L;
-                        }
-
-                        // 前回使用した再読み込み通知ファイルのタイムスタンプと異なる場合
-                        if (lastFileUpdate != file.lastModified()) {
-
-                            // 未実行のコマンドを取得
-                            FileReader fr = new FileReader(file);
-                            BufferedReader br = new BufferedReader(fr);
-                            long count = 0L;
-                            while (true) {
-                                final String cmd = br.readLine();
-                                if(cmd == null) break;
-                                if(count++ < CommandSyncManager.lineCount) continue;
-                                CommandSyncManager.lineCount++;
-                                Bukkit.getScheduler().runTask(SyncCommandExec.getInstance(), () -> {
-                                    if(SyncCommandTriggers.getTriggerCommands().keySet().contains(cmd)) {
-                                        String key = SyncCommandTriggers.getTriggerCommands().get(cmd);
-                                        for(String msg : SyncCommandTriggers.getBeginExecMsgs(key)) {
-                                            MessageUtils.broadcastColoredMessage(msg);
-                                        }
-                                        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd);
-                                        for(String msg : SyncCommandTriggers.getExecEndMsgs(key)) {
-                                            MessageUtils.broadcastColoredMessage(msg);
-                                        }
-                                    }
-                                });
-                            }
-
-                            // リソース解放
-                            br.close();
-
-                            // 再読み込み通知ファイルのタイムスタンプを更新
-                            lastFileCreate = fileCreate;
-                            lastFileUpdate = file.lastModified();
-                        }
-                    }
+                    checkCommand();
                 } catch (InterruptedException e) {
                     SyncCommandExec.getInstance().getLogger().info("監視タスクを停止します。");
                     break;
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
+            }
+        }
+
+        public synchronized void checkCommand() {
+            try {
+                // 連携用ファイルの保存ディレクトリにファイルが存在する場合
+                File file = new File(SyncCommandExecConfig.getSyncDataDir(), CHECK_FILENAME);
+                if (file.exists()) {
+
+                    // 作成日時を取得
+                    BasicFileAttributes atr = Files.readAttributes(file.toPath(), BasicFileAttributes.class);
+                    long fileCreate = atr.creationTime().toMillis();
+
+                    // 作成日時が異なる場合、1行目から
+                    if(fileCreate != lastFileCreate) {
+                        CommandSyncManager.lineCount = 0L;
+                    }
+
+                    // 前回使用した再読み込み通知ファイルのタイムスタンプと異なる場合
+                    if (lastFileUpdate != file.lastModified()) {
+
+                        // 未実行のコマンドを取得
+                        FileReader fr = new FileReader(file);
+                        BufferedReader br = new BufferedReader(fr);
+                        long count = 0L;
+                        while (true) {
+                            final String cmd = br.readLine();
+                            if(cmd == null) break;
+                            if(count++ < CommandSyncManager.lineCount) continue;
+                            CommandSyncManager.lineCount++;
+                            Bukkit.getScheduler().runTask(SyncCommandExec.getInstance(), () -> {
+                                if(SyncCommandTriggers.getTriggerCommands().keySet().contains(cmd)) {
+                                    String key = SyncCommandTriggers.getTriggerCommands().get(cmd);
+                                    for(String msg : SyncCommandTriggers.getBeginExecMsgs(key)) {
+                                        MessageUtils.broadcastColoredMessage(msg);
+                                    }
+                                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd);
+                                    for(String msg : SyncCommandTriggers.getExecEndMsgs(key)) {
+                                        MessageUtils.broadcastColoredMessage(msg);
+                                    }
+                                }
+                            });
+                        }
+
+                        // リソース解放
+                        br.close();
+
+                        // 再読み込み通知ファイルのタイムスタンプを更新
+                        lastFileCreate = fileCreate;
+                        lastFileUpdate = file.lastModified();
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         }
     }
