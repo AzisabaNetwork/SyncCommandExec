@@ -20,7 +20,6 @@ public class SyncCommandTriggers {
     
     // 同期トリガー
     private static Set<String> keys = new HashSet<>();
-    private static Map<String, String> triggerCmds = new HashMap<>();
 
     // 実行コマンド
     private static Map<String, List<String>> syncCmds = new HashMap<>();
@@ -29,7 +28,7 @@ public class SyncCommandTriggers {
 
     /**
      * 設定読み込み
-     * @param config 設定ファイル
+     * @param file 設定ファイル
      */
     public static void loadConfig(File file) {
         if(!file.exists()) {
@@ -39,7 +38,6 @@ public class SyncCommandTriggers {
         YamlConfiguration config = YamlConfiguration.loadConfiguration(file);
         ConfigurationSection triggers = config.getConfigurationSection("triggers");
         keys = triggers.getKeys(false);
-        triggerCmds = new HashMap<>();
         syncCmds = new HashMap<>();
         beginExecMsgs = new HashMap<>();
         execEndMsgs = new HashMap<>();
@@ -47,19 +45,10 @@ public class SyncCommandTriggers {
             List<String> cmds = triggers.getStringList(key + ".commands");
             List<String> beginMsgs = triggers.getStringList(key + ".messages.begin");
             List<String> endMsgs = triggers.getStringList(key + ".messages.end");
-            for(String cmd : cmds) triggerCmds.put(cmd, key);
             syncCmds.put(key, cmds);
             beginExecMsgs.put(key, beginMsgs);
             execEndMsgs.put(key, endMsgs);
         }
-    }
-
-    /**
-     * 同期処理発火対象のコマンドを取得する
-     * @return コマンドセット
-     */
-    public static Map<String, String> getTriggerCommands() {
-        return triggerCmds;
     }
 
     /**
