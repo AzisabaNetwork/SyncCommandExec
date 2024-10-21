@@ -1,5 +1,6 @@
 package com.github.aburaagetarou.command;
 
+import com.github.aburaagetarou.SyncCommandExec;
 import org.bukkit.command.CommandSender;
 import org.bukkit.plugin.Plugin;
 
@@ -26,8 +27,15 @@ import co.aikar.commands.annotation.Subcommand;
  */
 @CommandAlias("synccommandexec|syncomma")
 @Description("コマンド実行同期プラグイン 管理コマンド")
-public class SyncCommandExecCommand extends BaseCommand {
-    
+public class SyncCommandExecCommand extends ReloadableBaseCommand {
+
+    /**
+     * コンストラクタ
+     */
+    public SyncCommandExecCommand() {
+        SyncCommandExec.addCommand(this);
+    }
+
     @Dependency
     private Plugin plugin;
 
@@ -56,15 +64,7 @@ public class SyncCommandExecCommand extends BaseCommand {
             MessageUtils.sendColoredMessage(sender, "&c指定されたキーは設定されていません。");
             return;
         }
-        for(String msg : SyncCommandTriggers.getBeginExecMsgs(key)) {
-            MessageUtils.broadcastColoredMessage(msg);
-        }
-        for(String cmd : SyncCommandTriggers.getSyncCmds(key)) {
-            plugin.getServer().dispatchCommand(sender, cmd);
-            CommandSyncManager.addCommand(cmd);
-        }
-        for(String msg : SyncCommandTriggers.getExecEndMsgs(key)) {
-            MessageUtils.broadcastColoredMessage(msg);
-        }
+        CommandSyncManager.executeCommand(key);
+        CommandSyncManager.addCommand(key);
     }
 }

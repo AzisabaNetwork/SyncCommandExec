@@ -1,9 +1,13 @@
 package com.github.aburaagetarou;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
+import co.aikar.commands.BaseCommand;
 import com.github.aburaagetarou.command.BatchCommandExec;
+import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import com.github.aburaagetarou.command.SyncCommandExecCommand;
@@ -25,6 +29,9 @@ public class SyncCommandExec extends JavaPlugin {
 
     // コマンドAPI
     private static PaperCommandManager manager;
+
+    // コマンドリスト
+    private static final List<BaseCommand> commands = new ArrayList<>();
 
     /**
      * プラグイン有効化
@@ -54,13 +61,13 @@ public class SyncCommandExec extends JavaPlugin {
         manager.registerCommand(new SyncCommandExecCommand().setExceptionHandler((command, registeredCommand, sender, args, t) -> {
             sender.sendMessage(MessageType.ERROR, MessageKeys.ERROR_GENERIC_LOGGED);
             return true;
-        }));
+        }), true);
 
         // コマンド登録
         manager.registerCommand(new BatchCommandExec().setExceptionHandler((command, registeredCommand, sender, args, t) -> {
             sender.sendMessage(MessageType.ERROR, MessageKeys.ERROR_GENERIC_LOGGED);
             return true;
-        }));
+        }), true);
 
         // タブ補完登録
         manager.getCommandCompletions().registerCompletion("syncommakey", cmd -> {
@@ -83,6 +90,10 @@ public class SyncCommandExec extends JavaPlugin {
         // 監視の停止
         CommandSyncManager.stop();
 
+        // コマンド登録の解除
+        commands.forEach(manager::unregisterCommand);
+        manager.unregisterCommands();
+
         getLogger().info("SyncCommandExecが無効化されました。");
     }
 
@@ -99,5 +110,12 @@ public class SyncCommandExec extends JavaPlugin {
      */
     public static PaperCommandManager getCommandManager() {
         return manager;
+    }
+
+    /**
+     * コマンドリストにコマンドを追加する
+     */
+    public static void addCommand(BaseCommand command) {
+        commands.add(command);
     }
 }

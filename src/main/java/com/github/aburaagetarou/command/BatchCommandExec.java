@@ -14,7 +14,7 @@ import org.bukkit.plugin.Plugin;
  * @auther AburaAgeTarou
  */
 @CommandAlias("batchcommandexec|batchcomma")
-public class BatchCommandExec extends BaseCommand {
+public class BatchCommandExec extends ReloadableBaseCommand {
 
 	@Dependency
 	private Plugin plugin;

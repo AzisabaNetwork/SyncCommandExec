@@ -12,6 +12,7 @@ import org.bukkit.Bukkit;
 
 import com.github.aburaagetarou.config.SyncCommandExecConfig;
 import com.github.aburaagetarou.config.SyncCommandTriggers;
+import org.bukkit.scheduler.BukkitRunnable;
 
 /**
  * 連携元/先サーバーで行われた同期コマンド実行を監視するクラス
@@ -24,13 +25,9 @@ public class CommandSyncManager {
     // 前回使用した再読み込み通知ファイルのタイムスタンプ
     public static long lastFileCreate = 0L;
     public static long lastFileUpdate = 0L;
-    private static long lineCount = 0L;
-
-    // 監視スレッド
-    private static Thread thread;
 
     // 監視タスク
-    private static ObserveTask observeTask = new ObserveTask();
+    private static ObserveTask observeTask;
 
     /**
      * 監視の開始
@@ -38,15 +35,14 @@ public class CommandSyncManager {
     public static void start() {
 
         // タスクが実行中の場合は停止
-        if (thread != null && thread.isAlive()) {
-            observeTask.running = false;
-            thread.interrupt();
+        if (observeTask != null) {
+            observeTask.cancel();
+            SyncCommandExec.getInstance().getLogger().info("監視タスクを停止しました。");
         }
 
         // 他サーバーからの再読み込み通知を受け取る
         observeTask = new ObserveTask();
-        thread = new Thread(observeTask);
-        thread.start();
+        observeTask.runTaskTimerAsynchronously(SyncCommandExec.getInstance(), 0L, 20L);
     }
 
     /**
@@ -55,16 +51,16 @@ public class CommandSyncManager {
     public static void stop() {
 
         // タスクが実行中の場合は停止
-        if (thread != null) {
-            observeTask.running = false;
-            thread.interrupt();
+        if (observeTask != null) {
+            observeTask.cancel();
+            SyncCommandExec.getInstance().getLogger().info("監視タスクを停止しました。");
         }
     }
 
     /**
      * 同期コマンドを追加
      */
-    public static boolean addCommand(String fullCommand) {
+    public static boolean addCommand(String key) {
 
         // 連携用ファイルの保存ディレクトリにファイルを作成
         File file = new File(SyncCommandExecConfig.getSyncDataDir(), CommandSyncManager.CHECK_FILENAME);
@@ -73,8 +69,7 @@ public class CommandSyncManager {
             // 実行したコマンドを追記
             if(!file.exists()) file.createNewFile();
             FileWriter filewriter = new FileWriter(file, true);
-            String command = fullCommand.substring(fullCommand.indexOf("/") + 1);
-            filewriter.write(command + System.lineSeparator());
+            filewriter.write(key + System.lineSeparator());
             filewriter.close();
 
             // 自動更新ファイルのタイムスタンプを更新
@@ -94,32 +89,38 @@ public class CommandSyncManager {
     }
 
     /**
+     * コマンド実行
+     * @param key キー
+     */
+    public static void executeCommand(String key) {
+        if(SyncCommandTriggers.getKeys().contains(key)) {
+            for (String msg : SyncCommandTriggers.getBeginExecMsgs(key)) {
+                MessageUtils.broadcastColoredMessage(msg);
+            }
+            for (String cmd : SyncCommandTriggers.getSyncCmds(key)) {
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd);
+            }
+            for (String msg : SyncCommandTriggers.getExecEndMsgs(key)) {
+                MessageUtils.broadcastColoredMessage(msg);
+            }
+        }
+    }
+
+    /**
      * 監視タスク
      */
-    private static class ObserveTask implements Runnable {
-    
-        // 監視タスクの実行フラグ
-        protected volatile boolean running = true;
+    private static class ObserveTask extends BukkitRunnable {
+
+        private static boolean running = false;
+        private static long lineCount = 0L;
 
         /**
          * タスク開始
          */
         @Override
         public void run() {
-            while (running) {
-                try {
-                    Thread.sleep(1000L);
-                    checkCommand();
-                } catch (InterruptedException e) {
-                    SyncCommandExec.getInstance().getLogger().info("監視タスクを停止します。");
-                    break;
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-
-        public synchronized void checkCommand() {
+            if(running) return;
+            running = true;
             try {
                 // 連携用ファイルの保存ディレクトリにファイルが存在する場合
                 File file = new File(SyncCommandExecConfig.getSyncDataDir(), CHECK_FILENAME);
@@ -131,7 +132,7 @@ public class CommandSyncManager {
 
                     // 作成日時が異なる場合、1行目から
                     if(fileCreate != lastFileCreate) {
-                        CommandSyncManager.lineCount = 0L;
+                        lineCount = 0L;
                     }
 
                     // 前回使用した再読み込み通知ファイルのタイムスタンプと異なる場合
@@ -142,22 +143,11 @@ public class CommandSyncManager {
                         BufferedReader br = new BufferedReader(fr);
                         long count = 0L;
                         while (true) {
-                            final String cmd = br.readLine();
-                            if(cmd == null) break;
-                            if(count++ < CommandSyncManager.lineCount) continue;
-                            CommandSyncManager.lineCount++;
-                            Bukkit.getScheduler().runTask(SyncCommandExec.getInstance(), () -> {
-                                if(SyncCommandTriggers.getTriggerCommands().keySet().contains(cmd)) {
-                                    String key = SyncCommandTriggers.getTriggerCommands().get(cmd);
-                                    for(String msg : SyncCommandTriggers.getBeginExecMsgs(key)) {
-                                        MessageUtils.broadcastColoredMessage(msg);
-                                    }
-                                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd);
-                                    for(String msg : SyncCommandTriggers.getExecEndMsgs(key)) {
-                                        MessageUtils.broadcastColoredMessage(msg);
-                                    }
-                                }
-                            });
+                            final String key = br.readLine();
+                            if(key == null) break;
+                            if(count++ < lineCount) continue;
+                            lineCount++;
+                            Bukkit.getScheduler().runTask(SyncCommandExec.getInstance(), () -> CommandSyncManager.executeCommand(key));
                         }
 
                         // リソース解放
@@ -171,6 +161,7 @@ public class CommandSyncManager {
             } catch (Exception e) {
                 e.printStackTrace();
             }
+            running = false;
         }
     }
 }
